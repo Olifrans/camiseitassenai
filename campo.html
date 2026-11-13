@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SENAI - Modo Campo (Distribuição)</title>
+    
+    <!-- ✅ FAVICON: Quadrado perfeito (SVG) + Logo para Apple/Android -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23DA291C' rx='8'/%3E%3Ctext x='50%25' y='55%25' font-family='Arial Black, sans-serif' font-size='40' font-weight='900' fill='white' text-anchor='middle' dominant-baseline='middle'%3ES%3C/text%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" href="img/senai-logo.png">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/campo.css">
+    
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <!-- Biblioteca Signature Pad para assinatura digital -->
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+</head>
+
+
+<body>
+    <!-- HEADER -->
+    <header class="campo-header">
+        <div class="header-left">
+            <img src="img/senai-logo.png" alt="SENAI" class="logo-small">
+            <h1>Modo Campo</h1>
+        </div>
+        <div class="header-right">
+            <div class="status-indicator">
+                <i class="fas fa-circle" id="status-dot"></i>
+                <span id="status-text">Online</span>
+            </div>
+            <a href="index.html" class="btn-voltar" title="Voltar ao sistema">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+        </div>
+    </header>
+
+    <!-- Banner de Modo Offline -->
+    <div id="offline-banner" class="offline-banner" style="display: none;">
+        <i class="fas fa-wifi-slash"></i>
+        <span>Modo Offline: As distribuições serão salvas e sincronizadas automaticamente.</span>
+        <button class="btn-sync-manual" onclick="sincronizarPendentes()">
+            <i class="fas fa-sync"></i> Sincronizar (<span id="sync-count">0</span>)
+        </button>
+    </div>
+
+    <!-- ÁREA DE BUSCA -->
+    <section class="busca-section">
+        <div class="busca-container">
+            <i class="fas fa-search busca-icon"></i>
+            <input type="text" id="busca-aluno" class="busca-input" placeholder="Digite matrícula ou nome do aluno..."
+                autocomplete="off" autofocus>
+            <button class="btn-scan" id="btn-scan" title="Escanear Carteirinha (QR Code)">
+                <i class="fas fa-qrcode"></i>
+            </button>
+            <button class="btn-limpar" id="btn-limpar-busca" style="display:none;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Área da Câmera -->
+        <div id="leitor-qr" class="leitor-qr-container" style="display: none;">
+            <div class="leitor-header">
+                <span><i class="fas fa-camera"></i> Aponte a câmera para o QR Code</span>
+                <button class="btn-fechar-camera" onclick="pararScanner()">
+                    <i class="fas fa-times"></i> Fechar
+                </button>
+            </div>
+            <div id="reader"></div>
+        </div>
+
+        <div id="resultados-busca" class="resultados-container"></div>
+    </section>
+
+    <!-- ÁREA DE DISTRIBUIÇÃO -->
+    <section id="area-distribuicao" class="distribuicao-section">
+        <div id="aluno-card" class="aluno-card" style="display:none;">
+            <div class="aluno-info">
+                <h2 id="aluno-nome">Nome do Aluno</h2>
+                <div class="aluno-detalhes">
+                    <span class="detalhe"><i class="fas fa-id-card"></i> <span id="aluno-matricula">000000</span></span>
+                    <span class="detalhe"><i class="fas fa-chalkboard"></i> <span id="aluno-turma">Turma</span></span>
+                    <span class="detalhe"><i class="fas fa-book"></i> <span id="aluno-curso">Curso</span></span>
+                </div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:10px; margin-top: 15px;">
+                <button class="btn-pendentes" onclick="abrirModalPendentes()"
+                    style="background:#f59e0b;color:white;border:none;padding:12px 20px;border-radius:8px;cursor:pointer;font-weight:600;display:flex;align-items:center;gap:8px;justify-content:center;">
+                    <i class="fas fa-clipboard-list"></i> Ver Pendentes desta Turma
+                </button>
+                <button class="btn-trocar-aluno" onclick="voltarBusca()" style="margin-top:0;">
+                    <i class="fas fa-exchange-alt"></i> Trocar Aluno
+                </button>
+            </div>
+        </div>
+
+        <div class="tamanhos-container">
+            <h3>Selecione o Tamanho</h3>
+            <div class="tamanhos-grid">
+                <button class="btn-tamanho" data-tamanho="0" onclick="selecionarTamanho(0)"><span
+                        class="tamanho-label">PP</span><span class="tamanho-estoque"
+                        id="estoque-0">Carregando...</span></button>
+                <button class="btn-tamanho" data-tamanho="1" onclick="selecionarTamanho(1)"><span
+                        class="tamanho-label">P</span><span class="tamanho-estoque"
+                        id="estoque-1">Carregando...</span></button>
+                <button class="btn-tamanho" data-tamanho="2" onclick="selecionarTamanho(2)"><span
+                        class="tamanho-label">M</span><span class="tamanho-estoque"
+                        id="estoque-2">Carregando...</span></button>
+                <button class="btn-tamanho" data-tamanho="3" onclick="selecionarTamanho(3)"><span
+                        class="tamanho-label">G</span><span class="tamanho-estoque"
+                        id="estoque-3">Carregando...</span></button>
+                <button class="btn-tamanho" data-tamanho="4" onclick="selecionarTamanho(4)"><span
+                        class="tamanho-label">GG</span><span class="tamanho-estoque"
+                        id="estoque-4">Carregando...</span></button>
+                <button class="btn-tamanho" data-tamanho="5" onclick="selecionarTamanho(5)"><span
+                        class="tamanho-label">XGG</span><span class="tamanho-estoque"
+                        id="estoque-5">Carregando...</span></button>
+            </div>
+        </div>
+
+        <div id="confirmacao-area" class="confirmacao-container" style="display:none;">
+            <div class="confirmacao-box">
+                <i class="fas fa-check-circle confirmacao-icon"></i>
+                <h3>Confirmar Distribuição</h3>
+                <p><strong id="conf-aluno">Aluno</strong><br>Tamanho: <strong id="conf-tamanho">M</strong></p>
+                <div class="confirmacao-botoes">
+                    <button class="btn-cancelar" onclick="cancelarDistribuicao()"><i class="fas fa-times"></i>
+                        Cancelar</button>
+                    <button class="btn-confirmar" onclick="confirmarDistribuicao()"><i class="fas fa-check"></i>
+                        Confirmar</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FEEDBACK DE SUCESSO -->
+    <div id="feedback" class="feedback-overlay" style="display:none;">
+        <div class="feedback-content">
+            <i class="fas fa-check-circle feedback-icon sucesso"></i>
+            <h2 id="feedback-titulo">Sucesso!</h2>
+            <p id="feedback-mensagem">Distribuição registrada</p>
+        </div>
+    </div>
+
+    <!-- MODAL DE ALERTA - ALUNO JÁ RECEBEU -->
+    <div id="modal-ja-recebeu" class="modal-overlay" style="display:none; z-index: 9999;">
+        <div class="modal-alerta-erro">
+            <div class="alerta-header">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h2>⚠️ ALUNO JÁ RECEBEU CAMISETA</h2>
+            </div>
+            <div class="alerta-body">
+                <p class="alerta-mensagem">Este aluno já recebeu camiseta nesta turma e semestre.</p>
+                <div class="alerta-info-aluno">
+                    <h3>📋 DADOS DO ALUNO:</h3>
+                    <div class="info-grid">
+                        <div class="info-item"><strong>Nome:</strong><span id="alerta-nome">-</span></div>
+                        <div class="info-item"><strong>CPF:</strong><span id="alerta-cpf">-</span></div>
+                        <div class="info-item"><strong>Matrícula:</strong><span id="alerta-matricula">-</span></div>
+                        <div class="info-item"><strong>Turma:</strong><span id="alerta-turma">-</span></div>
+                    </div>
+                </div>
+                <div class="alerta-data-recebimento">
+                    <h3>📅 DATA DO RECEBIMENTO:</h3>
+                    <p id="alerta-data">-</p>
+                    <div class="alerta-tamanho-info">
+                        <i class="fas fa-tshirt"></i>
+                        <span id="alerta-tamanho-texto">-</span>
+                    </div>
+                </div>
+            </div>
+            <div class="alerta-footer">
+                <button class="btn-ok" onclick="fecharModalJaRecebeu()"><i class="fas fa-check"></i> OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ✅ MODAL PENDENTES (FORA DO CARD) -->
+    <div id="modal-pendentes" class="confirmacao-container" style="display:none; z-index: 1500;">
+        <div class="confirmacao-box" style="max-width: 520px; max-height: 80vh; display: flex; flex-direction: column;">
+            <h3 style="margin-bottom: 15px;"><i class="fas fa-clipboard-list"></i> Alunos Pendentes</h3>
+            <p id="pendentes-turma-nome" style="font-size: 0.9rem; color: #6b7280; margin-bottom: 15px;"></p>
+            <div id="lista-pendentes"
+                style="flex: 1; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px;">
+                <p style="text-align: center; color: #9ca3af;">Carregando...</p>
+            </div>
+            <button class="btn-cancelar" onclick="fecharModalPendentes()" style="margin-top: 15px; width: 100%;">
+                <i class="fas fa-times"></i> Fechar
+            </button>
+        </div>
+    </div>
+
+    <!-- ✅ MINI-POPUP ESCOLHER TAMANHO (FORA DO CARD) -->
+    <div id="modal-escolher-tamanho" class="confirmacao-container" style="display:none; z-index: 2000;">
+        <div class="confirmacao-box" style="max-width: 420px;">
+            <h3 style="margin-bottom: 5px;"><i class="fas fa-tshirt"></i> Escolha o Tamanho</h3>
+            <p id="escolha-aluno-nome" style="font-size: 0.9rem; color: #6b7280; margin-bottom: 20px;">Aluno: -</p>
+            <div class="tamanhos-grid" style="grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                <button class="btn-tamanho-mini" data-tamanho="0" onclick="confirmarTamanho(0)"><span
+                        class="tamanho-label">PP</span><span class="tamanho-estoque"
+                        id="mini-estoque-0">-</span></button>
+                <button class="btn-tamanho-mini" data-tamanho="1" onclick="confirmarTamanho(1)"><span
+                        class="tamanho-label">P</span><span class="tamanho-estoque"
+                        id="mini-estoque-1">-</span></button>
+                <button class="btn-tamanho-mini" data-tamanho="2" onclick="confirmarTamanho(2)"><span
+                        class="tamanho-label">M</span><span class="tamanho-estoque"
+                        id="mini-estoque-2">-</span></button>
+                <button class="btn-tamanho-mini" data-tamanho="3" onclick="confirmarTamanho(3)"><span
+                        class="tamanho-label">G</span><span class="tamanho-estoque"
+                        id="mini-estoque-3">-</span></button>
+                <button class="btn-tamanho-mini" data-tamanho="4" onclick="confirmarTamanho(4)"><span
+                        class="tamanho-label">GG</span><span class="tamanho-estoque"
+                        id="mini-estoque-4">-</span></button>
+                <button class="btn-tamanho-mini" data-tamanho="5" onclick="confirmarTamanho(5)"><span
+                        class="tamanho-label">XGG</span><span class="tamanho-estoque"
+                        id="mini-estoque-5">-</span></button>
+            </div>
+            <button class="btn-cancelar" onclick="fecharEscolhaTamanho()" style="margin-top: 20px; width: 100%;">
+                <i class="fas fa-times"></i> Cancelar
+            </button>
+        </div>
+    </div>
+
+
+
+    <!-- MODAL DE ASSINATURA DIGITAL -->
+    <div id="modal-assinatura" class="confirmacao-container" style="display:none; z-index: 3000;">
+        <div class="confirmacao-box" style="max-width: 600px;">
+            <h3 style="margin-bottom: 10px;"><i class="fas fa-signature"></i> Assinatura do Aluno</h3>
+            <p id="assinatura-info" style="font-size: 0.9rem; color: #6b7280; margin-bottom: 15px;">
+                Aluno: <strong>-</strong> | Tamanho: <strong>-</strong>
+            </p>
+
+            <div
+                style="border: 2px dashed #cbd5e1; border-radius: 8px; padding: 10px; background: #f8fafc; margin-bottom: 15px;">
+                <canvas id="signature-canvas"
+                    style="width: 100%; height: 200px; border: 1px solid #e2e8f0; border-radius: 4px; background: white; cursor: crosshair;"></canvas>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <button onclick="limparAssinatura()"
+                    style="flex: 1; padding: 10px; border: 1px solid #cbd5e1; background: white; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                    <i class="fas fa-eraser"></i> Limpar
+                </button>
+                <button onclick="cancelarAssinatura()"
+                    style="flex: 1; padding: 10px; border: 1px solid #cbd5e1; background: white; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+            </div>
+
+            <button onclick="confirmarAssinatura()"
+                style="width: 100%; padding: 12px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 1rem;">
+                <i class="fas fa-check"></i> Confirmar Entrega
+            </button>
+        </div>
+    </div>
+
+
+
+
+    <div id="toast" class="toast"></div>
+    <script src="js/api.js"></script>
+    <script src="js/campo.js"></script>
+</body>
+
+</html>

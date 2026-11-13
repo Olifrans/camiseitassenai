@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SENAI - Gestão de Camisetas</title>
+    
+    <link rel="icon" type="image/png" href="img/senai-logo.png">
+    <link rel="shortcut icon" type="image/png" href="img/senai-logo.png">
+    <link rel="apple-touch-icon" href="img/senai-logo.png">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+
+<body>
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-senai">
+                <span class="logo-text">
+                    <img src="./img/senai-logo.png" alt="SENAI" class="logo-img">
+                </span>
+            </div>
+            <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="Recolher/Expandir menu">
+                <i class="fas fa-bars"></i>
+            </button>
+            <button class="menu-toggle"><i class="fas fa-bars"></i></button>
+        </div>
+        <div class="unidade-selector">
+            <label>Unidade</label>
+            <select id="unidade-select">
+                <option>CFP 124 - Escola SENAI "Luis Eulálio"</option>
+                <option>SENAI Suzano</option>
+            </select>
+        </div>
+        <nav class="menu">
+            <a class="menu-item" data-page="dashboard" data-tooltip="Início"><i class="fas fa-home"></i><span>Início</span></a>
+            <a class="menu-item" data-page="distribuir" data-tooltip="Distribuição"><i class="fas fa-hand-holding-heart"></i><span>Distribuição</span></a>
+            <a href="campo.html" target="_blank" class="menu-item" data-tooltip="Modo Campo">
+                <i class="fas fa-mobile-alt"></i>
+                <span>Modo Campo</span>
+            </a>
+            <a class="menu-item" data-page="relatorios" data-tooltip="Relatórios"><i class="fas fa-chart-bar"></i><span>Relatórios</span></a>
+            <a class="menu-item" data-page="relatorios-sgs" data-tooltip="Relatórios SGS"><i class="fas fa-chart-line"></i><span>Relatórios SGS</span></a>
+            <a class="menu-item" data-page="sincronizacao" data-tooltip="Sincronização SGS"><i class="fas fa-sync-alt"></i><span>Sincronização SGS</span></a>
+            <a class="menu-item" data-page="consulta-sgs" data-tooltip="Base de Dados SGS"><i class="fas fa-database"></i><span>Base de Dados SGS</span></a>
+        </nav>
+    </aside>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <div class="main-wrapper">
+        <header class="top-header">
+            <div class="header-left">
+                <h3 id="page-title" style="margin:0; font-size:1.1rem; color:var(--senai-blue);">
+                    <i class="fas fa-home"></i> Dashboard
+                </h3>
+            </div>
+            <div class="header-right">
+                <button id="btn-historico-alertas" class="btn btn-outline" style="display:none; padding:6px 12px; font-size:0.85rem; margin-right:10px;" onclick="abrirHistoricoAlertas()" title="Ver Histórico de Alertas">
+                    <i class="fas fa-history"></i> <span style="margin-left:5px;">Histórico</span>
+                </button>
+                <button id="btn-exportar-dashboard-header" class="btn btn-primary" style="display:none; padding:6px 12px; font-size:0.85rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);" onclick="exportarDashboardPDF()" title="Exportar Dashboard em PDF">
+                    <i class="fas fa-file-pdf"></i> <span style="margin-left:5px;">Exportar PDF</span>
+                </button>
+
+                <div class="status-sgs-indicator" style="margin-right: 15px; font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
+                    <i class="fas fa-circle" id="sgs-dot" style="color: #f59e0b; font-size: 0.7rem;"></i>
+                    <span id="sgs-text" style="color: #6b7280;">SGS: Verificando...</span>
+                </div>
+
+                <div class="notification-bell" id="notification-bell" style="position: relative; cursor: pointer; margin-right: 15px;">
+                    <i class="fas fa-bell" style="font-size: 1.2rem; color: #495057; transition: color 0.3s;"></i>
+                    <span id="notification-badge" class="notification-badge" style="display: none; position: absolute; top: -8px; right: -10px; background: #dc3545; color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 0.7rem; font-weight: bold; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(220,53,69,0.4);">0</span>
+                    <div id="notification-dropdown" class="notification-dropdown" style="display: none; position: absolute; top: 40px; right: 0; background: white; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); width: 320px; max-height: 400px; overflow-y: auto; z-index: 1000;">
+                        <div style="padding: 15px; border-bottom: 1px solid #e9ecef; display: flex; justify-content: space-between; align-items: center;">
+                            <strong style="color: #212529;">Notificações</strong>
+                            <button id="btn-marcar-todos-lidos" style="background: none; border: none; color: #0055A4; cursor: pointer; font-size: 0.85rem;">Marcar todas como lidas</button>
+                        </div>
+                        <div id="notification-list"></div>
+                    </div>
+                </div>
+
+                <span class="user-name">Usuário: <strong>ADMINISTRADOR</strong></span>
+                <button class="btn-logout" title="Sair"><i class="fas fa-power-off"></i></button>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <!-- ==================== DASHBOARD ==================== -->
+            <div id="dashboard" class="page">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-info">
+                            <span class="stat-label">TOTAL EM ESTOQUE</span>
+                            <span class="stat-value" id="dash-total-estoque">0</span>
+                            <span class="stat-subtitle">camisetas disponíveis</span>
+                        </div>
+                        <div class="stat-icon"><i class="fas fa-boxes-stacked"></i></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-info">
+                            <span class="stat-label">CAMISETAS DISTRIBUÍDAS</span>
+                            <span class="stat-value" id="dash-total-dist">0</span>
+                            <span class="stat-subtitle">entregues aos alunos</span>
+                        </div>
+                        <div class="stat-icon"><i class="fas fa-hand-holding-heart"></i></div>
+                    </div>
+                    <div class="stat-card alert">
+                        <div class="stat-info">
+                            <span class="stat-label">ALERTAS DE ESTOQUE</span>
+                            <span class="stat-value" id="dash-alertas">0</span>
+                            <span class="stat-subtitle">tamanhos críticos</span>
+                        </div>
+                        <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-info">
+                            <span class="stat-label">TOTAL DE ALUNOS</span>
+                            <span class="stat-value" id="dash-total-alunos">0</span>
+                            <span class="stat-subtitle">cadastrados no sistema</span>
+                        </div>
+                        <div class="stat-icon"><i class="fas fa-user-graduate"></i></div>
+                    </div>
+                </div>
+
+                <div id="alertas-container" class="hidden" style="margin-bottom: 20px;">
+                    <div class="content-panel" style="background: #fef3c7; border-left: 4px solid #f59e0b;">
+                        <h3 style="color: #92400e; margin-bottom: 10px;"><i class="fas fa-exclamation-triangle"></i> Alertas de Estoque Baixo</h3>
+                        <div id="alertas-lista"></div>
+                    </div>
+                </div>
+
+                <div class="stats-grid" style="grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div class="content-panel">
+                        <h3 style="margin-bottom: 15px; color: var(--senai-blue);"><i class="fas fa-chart-pie"></i> Distribuições por Curso</h3>
+                        <canvas id="chartDistribuicoesCurso" style="max-height: 300px;"></canvas>
+                    </div>
+                    <div class="content-panel">
+                        <h3 style="margin-bottom: 15px; color: var(--senai-blue);"><i class="fas fa-chart-bar"></i> Distribuições por Tamanho</h3>
+                        <canvas id="chartDistribuicoesTamanho" style="max-height: 300px;"></canvas>
+                    </div>
+                </div>
+
+                <div class="content-panel" style="margin-bottom: 20px;">
+                    <div class="panel-header" style="margin-bottom: 20px;">
+                        <div>
+                            <h2 class="panel-title" style="font-size: 0.75rem;">ALERTA DE ESTOQUE</h2>
+                            <h3 class="panel-subtitle" style="font-size: 1.3rem;">SALDO POR TAMANHO</h3>
+                        </div>
+                        <button class="btn btn-outline" id="btn-atualizar-dash"><i class="fas fa-sync-alt"></i> Atualizar</button>
+                    </div>
+                    <div class="table-container">
+                        <table id="tbl-estoque-dash">
+                            <thead>
+                                <tr>
+                                    <th style="width: 30%;">TAMANHO</th>
+                                    <th style="width: 25%; text-align: center;">SALDO DISPONÍVEL</th>
+                                    <th style="width: 20%; text-align: center;">MÍNIMO</th>
+                                    <th style="width: 25%; text-align: center;">STATUS</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ✅ ESTATÍSTICAS AVANÇADAS (AGORA DENTRO DO DASHBOARD) -->
+                <div class="content-panel">
+                    <div class="panel-header" style="margin-bottom: 20px;">
+                        <div>
+                            <h2 class="panel-title" style="font-size: 0.75rem;">ANÁLISE AVANÇADA</h2>
+                            <h3 class="panel-subtitle" style="font-size: 1.3rem;">ESTATÍSTICAS GERAIS</h3>
+                        </div>
+                        <button class="btn btn-outline" id="btn-atualizar-estatisticas" onclick="carregarEstatisticas()">
+                            <i class="fas fa-sync-alt"></i> Atualizar
+                        </button>
+                    </div>
+
+                    <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px;">
+                        <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                            <div class="stat-info">
+                                <span class="stat-label" style="color: rgba(255,255,255,0.9);">TAXA DE COBERTURA</span>
+                                <span class="stat-value" id="stat-taxa-cobertura" style="color: white; font-size: 2rem;">0%</span>
+                                <span class="stat-subtitle" style="color: rgba(255,255,255,0.85);">alunos atendidos</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-info">
+                                <span class="stat-label">TOTAL DISTRIBUÍDO</span>
+                                <span class="stat-value" id="stat-total-distribuido">0</span>
+                                <span class="stat-subtitle">camisetas entregues</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-info">
+                                <span class="stat-label">ALUNOS ATIVOS</span>
+                                <span class="stat-value" id="stat-alunos-ativos">0</span>
+                                <span class="stat-subtitle">matriculados/concluintes</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-info">
+                                <span class="stat-label">TOP TURMA</span>
+                                <span class="stat-value" id="stat-top-turma" style="font-size: 1rem;">-</span>
+                                <span class="stat-subtitle" id="stat-top-turma-total">0 distribuições</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stats-grid" style="grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div class="content-panel" style="margin-bottom: 0;">
+                            <h4 style="margin-bottom: 10px; color: var(--senai-blue);"><i class="fas fa-chart-line"></i> Evolução Mensal</h4>
+                            <canvas id="chartEvolucaoMensal" style="max-height: 250px;"></canvas>
+                        </div>
+                        <div class="content-panel" style="margin-bottom: 0;">
+                            <h4 style="margin-bottom: 10px; color: var(--senai-blue);"><i class="fas fa-chart-pie"></i> Distribuição por Tamanho</h4>
+                            <canvas id="chartDistribuicaoTamanhos" style="max-height: 250px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- ==================== FIM DASHBOARD ==================== -->
+
+            <!-- ESTOQUE -->
+            <div id="estoque" class="page hidden">
+                <div class="content-panel">
+                    <div class="panel-header">
+                        <button class="btn btn-outline btn-voltar" onclick="showPage('dashboard')"><i class="fas fa-arrow-left"></i> Voltar</button>
+                        <div>
+                            <h2 class="panel-title">ALERTA DE ESTOQUE</h2>
+                            <h3 class="panel-subtitle">CONTROLE DE ESTOQUE</h3>
+                        </div>
+                    </div>
+                    <div class="panel-toolbar">
+                        <button class="btn btn-primary" id="btn-abrir-modal-entrada"><i class="fas fa-plus"></i> Registrar Entrada</button>
+                    </div>
+                    <div class="table-container">
+                        <table id="tbl-estoque-full">
+                            <thead>
+                                <tr>
+                                    <th>TAMANHO</th>
+                                    <th>QTD. INICIAL</th>
+                                    <th>SALDO ATUAL</th>
+                                    <th>MÍNIMO</th>
+                                    <th>ÚLTIMA ATUALIZAÇÃO</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- IMPORTAR -->
+            <div id="importar" class="page hidden">
+                <div class="content-panel" style="max-width: 700px;">
+                    <div class="panel-header">
+                        <button class="btn btn-outline btn-voltar" onclick="showPage('dashboard')"><i class="fas fa-arrow-left"></i> Voltar</button>
+                        <div>
+                            <h2 class="panel-title">IMPORTAÇÃO</h2>
+                            <h3 class="panel-subtitle">IMPORTAR TURMAS E ALUNOS</h3>
+                        </div>
+                    </div>
+                    <div class="alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <div><strong>Instruções:</strong><br>Selecione um arquivo CSV com as colunas: <code>CodigoTurma, NomeCurso, Ano, Semestre, Matricula, Nome</code></div>
+                    </div>
+                    <div class="form-group"><label>Arquivo CSV</label><input type="file" id="file-csv" accept=".csv"></div>
+                    <button class="btn btn-primary" id="btn-processar-csv"><i class="fas fa-upload"></i> Processar Arquivo</button>
+                    <div id="import-result" class="hidden" style="margin-top: 20px;"></div>
+                </div>
+            </div>
+
+            
+
+            <!-- DISTRIBUIR -->
+            <div id="distribuir" class="page hidden">
+                <div class="content-panel" style="max-width: 800px;">
+                    <div class="panel-header">
+                        <button class="btn btn-outline btn-voltar" onclick="showPage('dashboard')"><i class="fas fa-arrow-left"></i> Voltar</button>
+                        <div>
+                            <h2 class="panel-title">DISTRIBUIÇÃO</h2>
+                            <h3 class="panel-subtitle">REGISTRAR DISTRIBUIÇÃO</h3>
+                        </div>
+                    </div>
+                    <form id="form-dist">
+                        <div class="form-grid-2">
+                            <div class="form-group"><label>Matrícula do Aluno <span class="required">*</span></label><input type="text" id="dist-matricula" required placeholder="Ex: 0012345"></div>
+                            <div class="form-group"><label>Código da Turma <span class="required">*</span></label><input type="text" id="dist-turma" required placeholder="Ex: TURMA01"></div>
+                        </div>
+                        <div class="form-grid-3">
+                            <div class="form-group"><label>Tamanho <span class="required">*</span></label><select id="dist-tamanho" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="0">PP</option>
+                                    <option value="1">P</option>
+                                    <option value="2" selected>M</option>
+                                    <option value="3">G</option>
+                                    <option value="4">GG</option>
+                                    <option value="5">XGG</option>
+                                </select></div>
+                            <div class="form-group"><label>Ano <span class="required">*</span></label><input type="number" id="dist-ano" value="2026" required></div>
+                            <div class="form-group"><label>Semestre <span class="required">*</span></label><select id="dist-semestre" required>
+                                    <option value="1">1º Semestre</option>
+                                    <option value="2">2º Semestre</option>
+                                </select></div>
+                        </div>
+                        <div class="form-group"><label>Responsável pela Entrega <span class="required">*</span></label><input type="text" id="dist-resp" required placeholder="Nome do responsável"></div>
+                        <button type="submit" class="btn btn-primary btn-full" id="btn-salvar-dist"><i class="fas fa-check"></i> Confirmar Entrega</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- RELATÓRIOS -->
+            <div id="relatorios" class="page hidden">
+                <div class="content-panel">
+                    <div class="panel-header">
+                        <button class="btn btn-outline btn-voltar" onclick="showPage('dashboard')"><i class="fas fa-arrow-left"></i> Voltar</button>
+                        <div>
+                            <h2 class="panel-title">RELATÓRIOS</h2>
+                            <h3 class="panel-subtitle">MOVIMENTAÇÕES DE ESTOQUE</h3>
+                        </div>
+                    </div>
+                    <div class="filter-section">
+                        <div class="filter-header">
+                            <h4><i class="fas fa-filter"></i> Filtros Avançados</h4>
+                            <button class="btn btn-link" id="btn-toggle-filtros"><i class="fas fa-chevron-up"></i> Recolher</button>
+                        </div>
+                        <div id="filtros-content" class="filter-content">
+                            <div class="filter-grid">
+                                <div class="form-group"><label>Tipo de Movimentação</label><select id="filtro-tipo">
+                                        <option value="">Todos os tipos</option>
+                                        <option value="Entrada">Entrada</option>
+                                        <option value="Saida">Saída</option>
+                                        <option value="Distribuicao">Distribuição</option>
+                                    </select></div>
+                                <div class="form-group"><label>Tamanho</label><select id="filtro-tamanho">
+                                        <option value="">Todos os tamanhos</option>
+                                        <option value="0">PP</option>
+                                        <option value="1">P</option>
+                                        <option value="2">M</option>
+                                        <option value="3">G</option>
+                                        <option value="4">GG</option>
+                                        <option value="5">XGG</option>
+                                    </select></div>
+                                <div class="form-group"><label>Data Início</label><input type="date" id="filtro-data-inicio"></div>
+                                <div class="form-group"><label>Data Fim</label><input type="date" id="filtro-data-fim"></div>
+                                <div class="form-group"><label>Responsável</label><input type="text" id="filtro-responsavel" placeholder="Nome do responsável"></div>
+                                <div class="form-group"><label>Código da Turma</label><input type="text" id="filtro-turma" placeholder="Ex: TURMA-001"></div>
+                                <div class="form-group"><label>Matrícula do Aluno</label><input type="text" id="filtro-matricula" placeholder="Ex: 26273258"></div>
+                            </div>
+                            <div class="filter-actions">
+                                <button class="btn btn-outline" id="btn-limpar-filtros"><i class="fas fa-eraser"></i> Limpar Filtros</button>
+                                <button class="btn btn-primary" id="btn-aplicar-filtros"><i class="fas fa-search"></i> Aplicar Filtros</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="panel-toolbar">
+                        <div class="results-per-page">
+                            <select id="rel-results-per-page">
+                                <option value="10">10</option>
+                                <option value="25">25</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </select>
+                            <span>resultados por página</span>
+                            <span class="total-registros" id="total-registros"></span>
+                        </div>
+                        <div class="toolbar-actions">
+                            <button class="btn btn-outline" id="btn-exportar-csv"><i class="fas fa-file-csv"></i> Exportar CSV</button>
+                            <button class="btn btn-outline" id="btn-exportar-pdf"><i class="fas fa-file-pdf"></i> Exportar PDF</button>
+                            <button class="btn btn-outline" id="btn-carregar-mov"><i class="fas fa-sync-alt"></i> Atualizar</button>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table id="tbl-mov">
+                            <thead>
+                                <tr>
+                                    <th>DATA</th>
+                                    <th>TIPO</th>
+                                    <th>TAMANHO</th>
+                                    <th>QTD</th>
+                                    <th>ALUNO</th>
+                                    <th>MATRÍCULA</th>
+                                    <th>TURMA</th>
+                                    <th>RESPONSÁVEL</th>
+                                    <th>OBSERVAÇÃO</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination" id="pagination-container"></div>
+                </div>
+            </div>
+
+            <!-- RELATÓRIOS SGS -->
+            <div id="relatorios-sgs" class="page hidden">
+                <div class="content-panel">
+                    <div class="panel-header">
+                        <button class="btn btn-outline btn-voltar" onclick="showPage('dashboard')"><i class="fas fa-arrow-left"></i> Voltar</button>
+                        <div>
+                            <h2 class="panel-title">RELATÓRIOS SGS</h2>
+                            <h3 class="panel-subtitle">DISTRIBUIÇÃO CRUZADA COM BASE SGS</h3>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+                        <button class="btn btn-outline" id="tab-dist-sgs" onclick="mostrarAbaRelatorioSGS('distribuicoes')" style="border-bottom: 3px solid var(--senai-blue); border-radius: 0;"><i class="fas fa-list"></i> Distribuições</button>
+                        <button class="btn btn-outline" id="tab-resumo-turma" onclick="mostrarAbaRelatorioSGS('resumo-turma')" style="border-radius: 0;"><i class="fas fa-chart-bar"></i> Resumo por Turma</button>
+                        <button class="btn btn-outline" id="tab-resumo-curso" onclick="mostrarAbaRelatorioSGS('resumo-curso')" style="border-radius: 0;"><i class="fas fa-graduation-cap"></i> Resumo por Curso</button>
+                    </div>
+                    <div id="secao-distribuicoes-sgs">
+                        <div class="panel-toolbar">
+                            <input type="text" id="filtro-turma-sgs" placeholder="Código da Turma" style="padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; width: 200px;">
+                            <input type="text" id="filtro-matricula-sgs" placeholder="Matrícula do Aluno" style="padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; width: 200px;">
+                            <button class="btn btn-primary" onclick="loadDistribuicoesSGS()"><i class="fas fa-search"></i> Buscar</button>
+                            <button class="btn btn-outline" onclick="exportarDistribuicoesSGS()"><i class="fas fa-file-csv"></i> Exportar CSV</button>
+                        </div>
+                        <div class="table-container">
+                            <table id="tbl-distribuicoes-sgs">
+                                <thead>
+                                    <tr>
+                                        <th>DATA</th>
+                                        <th>ALUNO</th>
+                                        <th>MATRÍCULA</th>
+                                        <th>TURMA</th>
+                                        <th>CURSO</th>
+                                        <th>TAMANHO</th>
+                                        <th>QTD</th>
+                                        <th>RESPONSÁVEL</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div id="secao-resumo-turma" class="hidden">
+                        <div class="panel-toolbar"><button class="btn btn-outline" onclick="loadResumoPorTurma()"><i class="fas fa-sync-alt"></i> Atualizar</button></div>
+                        <div class="table-container">
+                            <table id="tbl-resumo-turma">
+                                <thead>
+                                    <tr>
+                                        <th>TURMA</th>
+                                        <th>CURSO</th>
+                                        <th>TURNO</th>
+                                        <th>DOCENTE</th>
+                                        <th>TOTAL ALUNOS</th>
+                                        <th>DISTRIBUÍDOS</th>
+                                        <th>PENDENTES</th>
+                                        <th>% ATENDIMENTO</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div id="secao-resumo-curso" class="hidden">
+                        <div class="stats-grid" id="cards-resumo-curso" style="margin-top: 20px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SINCRONIZAÇÃO SGS -->
+            <div id="sincronizacao" class="page hidden">
+                <div class="content-panel">
+                    <div class="panel-header">
+                        <button class="btn btn-outline btn-voltar" onclick="showPage('dashboard')"><i class="fas fa-arrow-left"></i> Voltar</button>
+                        <div>
+                            <h2 class="panel-title">INTEGRAÇÃO</h2>
+                            <h3 class="panel-subtitle">SINCRONIZAÇÃO COM SISTEMA SGS</h3>
+                        </div>
+                    </div>
+                    <div class="content-panel" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; margin-bottom: 20px; border-radius: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                            <div>
+                                <h3 style="margin: 0 0 8px 0; font-size: 1.2rem;"><i class="fas fa-sync-alt"></i> Sincronização Automática</h3>
+                                <p style="margin: 0; opacity: 0.95; font-size: 0.9rem;">Importa diretamente do banco SGS todos os dados de Turmas e Alunos</p>
+                                <p style="margin: 8px 0 0 0; font-size: 0.85rem; opacity: 0.85;"><i class="fas fa-info-circle"></i> Requer conexão com o servidor SGS</p>
+                            </div>
+                            <button class="btn btn-primary" id="btn-sincronizar-automatico" style="background: white; color: #667eea; font-weight: 600; padding: 12px 24px; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"><i class="fas fa-sync-alt"></i> Sincronizar Automaticamente</button>
+                        </div>
+                    </div>
+                    <div id="resultado-sincronizacao" class="hidden" style="margin-bottom: 20px;"></div>
+                    <div class="alert-info" style="background: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+                        <div style="display: flex; gap: 12px;">
+                            <i class="fas fa-info-circle" style="font-size: 1.2rem; color: #3b82f6; margin-top: 2px;"></i>
+                            <div>
+                                <strong style="color: #1e40af;">Importação Manual (CSV) - Plano B</strong>
+                                <p style="margin: 8px 0 0 0; color: #1e3a8a; font-size: 0.9rem;">Exporte as consultas de "Alunos" e "Turmas" do sistema SGS em formato CSV (separado por ponto e vírgula ';') e importe abaixo.<br><em style="font-size: 0.85rem; color: #6b7280;">Use esta opção quando a sincronização automática não estiver disponível.</em></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stats-grid" style="grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div class="content-panel" style="margin-bottom: 0; border: 2px solid #e5e7eb;">
+                            <h4 style="margin-bottom: 15px; color: var(--senai-blue);"><i class="fas fa-chalkboard-teacher"></i> Importar Turmas (CSV)</h4>
+                            <div class="form-group"><label>Arquivo CSV de Turmas</label><input type="file" id="file-turmas-sgs" accept=".csv" style="border: 2px dashed #d1d5db; padding: 10px; border-radius: 6px; width: 100%;"></div>
+                            <button class="btn btn-primary btn-full" id="btn-importar-turmas-sgs" style="background: #3b82f6; border: none;"><i class="fas fa-upload"></i> Importar Turmas</button>
+                            <div id="result-turmas-sgs" class="hidden" style="margin-top: 15px;"></div>
+                        </div>
+                        <div class="content-panel" style="margin-bottom: 0; border: 2px solid #e5e7eb;">
+                            <h4 style="margin-bottom: 15px; color: var(--senai-blue);"><i class="fas fa-user-graduate"></i> Importar Alunos (CSV)</h4>
+                            <div class="form-group"><label>Arquivo CSV de Alunos</label><input type="file" id="file-alunos-sgs" accept=".csv" style="border: 2px dashed #d1d5db; padding: 10px; border-radius: 6px; width: 100%;"></div>
+                            <button class="btn btn-primary btn-full" id="btn-importar-alunos-sgs" style="background: #3b82f6; border: none;"><i class="fas fa-upload"></i> Importar Alunos</button>
+                            <div id="result-alunos-sgs" class="hidden" style="margin-top: 15px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CONSULTA BASE SGS -->
+            <div id="consulta-sgs" class="page hidden">
+                <div class="content-panel">
+                    <div class="panel-header">
+                        <button class="btn btn-outline btn-voltar" onclick="showPage('dashboard')"><i class="fas fa-arrow-left"></i> Voltar</button>
+                        <div>
+                            <h2 class="panel-title">CONSULTA</h2>
+                            <h3 class="panel-subtitle">BASE DE DADOS SGS (CACHE LOCAL)</h3>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+                        <button class="btn btn-outline" id="tab-turmas" onclick="mostrarAba('turmas')" style="border-bottom: 3px solid var(--senai-blue); border-radius: 0;"><i class="fas fa-chalkboard-teacher"></i> Turmas</button>
+                        <button class="btn btn-outline" id="tab-alunos" onclick="mostrarAba('alunos')" style="border-radius: 0;"><i class="fas fa-user-graduate"></i> Alunos</button>
+                    </div>
+                    <div id="secao-turmas">
+                        <div class="panel-toolbar">
+                            <input type="text" id="busca-turma" placeholder="Buscar por curso, turma ou código..." style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 4px; width: 300px;" onkeyup="if(event.key === 'Enter') loadTurmasSGS()">
+                            <button class="btn btn-primary" onclick="loadTurmasSGS()"><i class="fas fa-search"></i> Buscar</button>
+                        </div>
+                        <div class="table-container">
+                            <table id="tbl-turmas-sgs">
+                                <thead>
+                                    <tr>
+                                        <th>CÓDIGO</th>
+                                        <th>CURSO / TURMA</th>
+                                        <th>NÍVEL</th>
+                                        <th>CARGA HORÁRIA</th>
+                                        <th>TURNO</th>
+                                        <th>DOCENTE</th>
+                                        <th>PERÍODO</th>
+                                        <th>MATRÍCULAS</th>
+                                        <th>STATUS</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div id="secao-alunos" class="hidden">
+                        <div class="panel-toolbar">
+                            <input type="text" id="busca-aluno" placeholder="Buscar por nome, matrícula ou CPF..." style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 4px; width: 350px;" onkeyup="if(event.key === 'Enter') loadAlunosSGS()">
+                            <button class="btn btn-primary" onclick="loadAlunosSGS()"><i class="fas fa-search"></i> Buscar</button>
+                        </div>
+                        <div class="table-container">
+                            <table id="tbl-alunos-sgs">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 10%;">MATRÍCULA</th>
+                                        <th style="width: 20%;">NOME / IDADE / SEXO</th>
+                                        <th style="width: 12%;">CPF</th>
+                                        <th style="width: 10%;">SITUAÇÃO</th>
+                                        <th style="width: 10%;">GRATUIDADE / BOLSA</th>
+                                        <th style="width: 18%;">CONTATO</th>
+                                        <th style="width: 10%;">ENDEREÇO</th>
+                                        <th style="width: 10%;">DATA MATRÍCULA</th>
+                                        <th style="width: 10%;">DATA CONCLUSÃO</th>
+                                        <th style="width: 10%;">OCUPAÇÃO / EMPRESA</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL ENTRADA -->
+    <div id="modal-entrada" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Registrar Entrada de Estoque</h3>
+                <button class="btn-fechar-modal" id="btn-fechar-modal">&times;</button>
+            </div>
+            <form id="form-entrada">
+                <div class="form-group"><label>Tamanho <span class="required">*</span></label><select id="ent-tamanho" required>
+                        <option value="">Selecione...</option>
+                        <option value="0">PP</option>
+                        <option value="1">P</option>
+                        <option value="2">M</option>
+                        <option value="3">G</option>
+                        <option value="4">GG</option>
+                        <option value="5">XGG</option>
+                    </select></div>
+                <div class="form-group"><label>Quantidade <span class="required">*</span></label><input type="number" id="ent-qtd" min="1" required placeholder="Ex: 50"></div>
+                <div class="form-group"><label>Responsável <span class="required">*</span></label><input type="text" id="ent-resp" required placeholder="Nome do responsável"></div>
+                <div class="form-group"><label>Observação</label><textarea id="ent-obs" rows="3" placeholder="Observações adicionais (opcional)"></textarea></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" id="btn-cancelar-entrada">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btn-salvar-entrada"><i class="fas fa-save"></i> Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL HISTÓRICO DE ALERTAS -->
+    <div id="modal-historico" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width:700px; max-height:80vh; overflow-y:auto;">
+            <div class="modal-header">
+                <h3><i class="fas fa-history" style="color:var(--senai-blue);"></i> Histórico de Alertas e Eventos</h3>
+                <button class="btn-fechar-modal" onclick="fecharHistoricoAlertas()">&times;</button>
+            </div>
+            <div style="padding:20px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                    <div>
+                        <strong style="color:var(--text-primary);">Registro de Eventos do Sistema</strong>
+                        <p style="font-size:0.85rem; color:var(--text-secondary); margin-top:5px;">Acompanhe alertas críticos e movimentações importantes</p>
+                    </div>
+                    <button class="btn btn-outline" onclick="limparHistoricoAlertas()" style="font-size:0.8rem;">
+                        <i class="fas fa-trash"></i> Limpar
+                    </button>
+                </div>
+                <div id="lista-historico" style="max-height:500px; overflow-y:auto;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <!-- Scripts -->
+    <script src="js/api.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/estoque.js"></script>
+    <script src="js/distribuicao.js"></script>
+    <script src="js/importacao.js"></script>
+    <script src="js/relatorios.js"></script>
+    <script src="js/relatorios-sgs.js"></script>
+    <script src="js/sincronizacao.js"></script>
+    <script src="js/consulta-sgs.js"></script>
+    <script src="js/dashboard-charts.js"></script>
+    <script src="js/notificacoes.js"></script>
+    <script src="js/historico-alertas.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/dashboard-pdf.js"></script>
+</body>
+</html>
